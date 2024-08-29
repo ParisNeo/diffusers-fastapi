@@ -47,6 +47,8 @@ import numpy as np
 import cv2
 from stegano import lsb
 import hashlib
+import base64
+
 
 global diffusers_model
 outputs_folder = Path("__file__").parent/"outputs"
@@ -78,9 +80,10 @@ class ImageGenerationResponse(BaseModel):
     """
     Pydantic model for image generation responses.
     """
-    image_path: str
+    image_base64: str
     prompt: str
     negative_prompt: str
+
 
 class DiffusersModel:
     """
@@ -250,6 +253,10 @@ class DiffusersModel:
                 generator=generator
             ).images[0]
             image = self.add_hidden_watermark(image)
+            # Convert image to base64
+            buffered = io.BytesIO()
+            image.save(buffered, format="PNG")
+            img_str = base64.b64encode(buffered.getvalue()).decode()            
         except Exception as e:
             if self.verbose:
                 logging.error(f"Image generation failed: {str(e)}")
@@ -261,7 +268,7 @@ class DiffusersModel:
         
         if self.verbose:
             logging.info(f"Image saved to: {fn}")
-        return str(fn), {"prompt": request.positive_prompt, "negative_prompt": request.negative_prompt}
+        return img_str, {"prompt": request.positive_prompt, "negative_prompt": request.negative_prompt}
 
     def img2img(self, init_image: Image.Image, request: ImageGenerationRequest) -> tuple:
         """
@@ -289,6 +296,10 @@ class DiffusersModel:
                 generator=generator
             ).images[0]
             image = self.add_hidden_watermark(image)
+            # Convert image to base64
+            buffered = io.BytesIO()
+            image.save(buffered, format="PNG")
+            img_str = base64.b64encode(buffered.getvalue()).decode()            
         except Exception as e:
             if self.verbose:
                 logging.error(f"Image-to-image generation failed: {str(e)}")
@@ -300,7 +311,7 @@ class DiffusersModel:
         
         if self.verbose:
             logging.info(f"Image-to-image result saved to: {fn}")
-        return str(fn), {"prompt": request.positive_prompt, "negative_prompt": request.negative_prompt}
+        return img_str, {"prompt": request.positive_prompt, "negative_prompt": request.negative_prompt}
 
     def inpaint(self, init_image: Image.Image, mask_image: Image.Image, request: ImageGenerationRequest) -> tuple:
         """
@@ -330,6 +341,11 @@ class DiffusersModel:
                 generator=generator
             ).images[0]
             image = self.add_hidden_watermark(image)
+            # Convert image to base64
+            buffered = io.BytesIO()
+            image.save(buffered, format="PNG")
+            img_str = base64.b64encode(buffered.getvalue()).decode()            
+
         except Exception as e:
             if self.verbose:
                 logging.error(f"Inpainting failed: {str(e)}")
@@ -341,7 +357,7 @@ class DiffusersModel:
         
         if self.verbose:
             logging.info(f"Inpainting result saved to: {fn}")
-        return str(fn), {"prompt": request.positive_prompt, "negative_prompt": request.negative_prompt}
+        return img_str, {"prompt": request.positive_prompt, "negative_prompt": request.negative_prompt}
 
 diffusers_model = None
 
@@ -356,9 +372,9 @@ async def generate_image(request: ImageGenerationRequest):
     Returns:
         ImageGenerationResponse: The response containing the generated image path and metadata.
     """
-    image_path, metadata = diffusers_model.paint(request)
+    image_base64, metadata = diffusers_model.paint(request)
     return ImageGenerationResponse(
-        image_path=image_path,
+        image_base64=image_base64,
         prompt=metadata["prompt"],
         negative_prompt=metadata["negative_prompt"]
     )
@@ -395,9 +411,9 @@ async def img2img(
         scale=scale,
         steps=steps
     )
-    image_path, metadata = diffusers_model.img2img(init_image, request)
+    image_base64, metadata = diffusers_model.img2img(init_image, request)
     return ImageGenerationResponse(
-        image_path=image_path,
+        image_base64=image_base64,
         prompt=metadata["prompt"],
         negative_prompt=metadata["negative_prompt"]
     )
@@ -438,9 +454,9 @@ async def inpaint(
         scale=scale,
         steps=steps
     )
-    image_path, metadata = diffusers_model.inpaint(init_image, mask_image, request)
+    image_base64, metadata = diffusers_model.inpaint(init_image, mask_image, request)
     return ImageGenerationResponse(
-        image_path=image_path,
+        image_base64=image_base64,
         prompt=metadata["prompt"],
         negative_prompt=metadata["negative_prompt"]
     )
