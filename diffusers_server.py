@@ -517,6 +517,7 @@ if __name__ == "__main__":
     parser.add_argument("--models_dir", type=str, default="models", help="Directory to cache models")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     parser.add_argument("--watermark", action="store_true", help="Add hidden watermark to generated images")
+    parser.add_argument("--save_local_copy", action="store_true", help="Save a local copy of the generated images")
     
     args = parser.parse_args()
 
