@@ -154,20 +154,23 @@ class DiffusersModel:
                     **model_kwargs
                 )
             self.model.to(device)
+            try:
+                # Load img2img model
+                self.img2img_model = StableDiffusionImg2ImgPipeline.from_pretrained(
+                    self.diffusers_model,
+                    **model_kwargs
+                )
+                self.img2img_model.to(device)
 
-            # Load img2img model
-            self.img2img_model = StableDiffusionImg2ImgPipeline.from_pretrained(
-                self.diffusers_model,
-                **model_kwargs
-            )
-            self.img2img_model.to(device)
-
-            # Load inpainting model
-            self.inpaint_model = StableDiffusionInpaintPipeline.from_pretrained(
-                self.diffusers_model,
-                **model_kwargs
-            )
-            self.inpaint_model.to(device)
+                # Load inpainting model
+                self.inpaint_model = StableDiffusionInpaintPipeline.from_pretrained(
+                    self.diffusers_model,
+                    **model_kwargs
+                )
+                self.inpaint_model.to(device)
+            except:
+                self.img2img_model = None
+                self.inpaint_model = None
 
             if self.verbose:
                 logging.info("Models loaded successfully")
