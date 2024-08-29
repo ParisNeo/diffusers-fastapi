@@ -34,6 +34,7 @@ from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from pydantic import BaseModel
 import torch
 from pathlib import Path
+from diffusers import StableDiffusionPipeline
 from diffusers import StableDiffusion3Pipeline, AutoPipelineForText2Image, StableDiffusionImg2ImgPipeline, StableDiffusionInpaintPipeline
 from typing import Optional
 import uvicorn
@@ -82,7 +83,7 @@ class DiffusersModel:
     A class to manage different Stable Diffusion models and perform various image generation tasks.
     """
 
-    def __init__(self, diffusers_model: str, outputs_dir: str, models_dir: str, verbose: bool = False):
+    def __init__(self, diffusers_model: str, outputs_dir: str, models_dir: str, verbose: bool = False, watermark: bool = False):
         """
         Initialize the DiffusersModel.
 
@@ -91,6 +92,7 @@ class DiffusersModel:
             outputs_dir (str): Directory to save generated images.
             models_dir (str): Directory to cache models.
             verbose (bool, optional): Enable verbose logging. Defaults to False.
+            watermark (bool, optional): Enable watermarking the generations.
         """
         self.model = None
         self.img2img_model = None
@@ -99,6 +101,7 @@ class DiffusersModel:
         self.models_dir = models_dir
         self.diffusers_model = diffusers_model
         self.verbose = verbose
+        self.watermark = watermark
         self.load_model()
 
     def load_model(self):
@@ -156,18 +159,18 @@ class DiffusersModel:
             self.model.to(device)
             try:
                 # Load img2img model
-                self.img2img_model = StableDiffusionImg2ImgPipeline.from_pretrained(
+                self.img2img_model = StableDiffusionPipeline.from_pretrained(
                     self.diffusers_model,
                     **model_kwargs
-                )
-                self.img2img_model.to(device)
+                ).to(device)
+                self.img2img_model.enable_model_cpu_offload()
 
                 # Load inpainting model
-                self.inpaint_model = StableDiffusionInpaintPipeline.from_pretrained(
+                self.inpaint_model = StableDiffusionPipeline.from_pretrained(
                     self.diffusers_model,
                     **model_kwargs
-                )
-                self.inpaint_model.to(device)
+                ).to(device)
+                self.inpaint_model.enable_model_cpu_offload()
             except:
                 self.img2img_model = None
                 self.inpaint_model = None
@@ -436,7 +439,7 @@ def find_next_available_filename(path: Path, prefix: str) -> Path:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Diffusers Image Generation API")
-    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host to run the server on")
+    parser.add_argument("--host", type=str, default="0.0.0.0", help="Host to run the server on")
     parser.add_argument("--port", type=int, default=8253, help="Port to run the server on")
     parser.add_argument("--model", type=str, default="v2ray/stable-diffusion-3-medium-diffusers", help="Diffusers model to use")
     parser.add_argument("--outputs_dir", type=str, default="outputs", help="Directory to save generated images")
