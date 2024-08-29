@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  diffusers-fastapi:
+    build: .
+    ports:
+      - "8253:8253"
+    volumes:
+      - ./outputs:/app/outputs
+      - ./models:/app/models
+    environment:
+      - CUDA_VISIBLE_DEVICES=0  # Adjust this if you want to use specific GPUs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  outputs:
+  models:

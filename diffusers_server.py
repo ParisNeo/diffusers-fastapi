@@ -435,7 +435,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Diffusers Image Generation API")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Host to run the server on")
     parser.add_argument("--port", type=int, default=8253, help="Port to run the server on")
-    parser.add_argument("--model", type=str, default="stabilityai/stable-diffusion-2-1", help="Diffusers model to use")
+    parser.add_argument("--model", type=str, default="v2ray/stable-diffusion-3-medium-diffusers", help="Diffusers model to use")
     parser.add_argument("--outputs_dir", type=str, default="outputs", help="Directory to save generated images")
     parser.add_argument("--models_dir", type=str, default="models", help="Directory to cache models")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
