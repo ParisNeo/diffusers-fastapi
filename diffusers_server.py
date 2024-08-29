@@ -24,7 +24,7 @@ Run the script with the desired arguments to start the FastAPI server. Use the p
 with the image generation and manipulation capabilities.
 
 Example:
-python diffusers_fastapi.py --host 0.0.0.0 --port 8253 --model "stabilityai/stable-diffusion-2-1" --output_dir "output" --models_dir "models" --verbose
+python diffusers_fastapi.py --host 0.0.0.0 --port 8253 --model "stabilityai/stable-diffusion-2-1" --outputs_dir "output" --models_dir "models" --verbose
 
 License: Apache 2.0
 """
@@ -82,20 +82,20 @@ class DiffusersModel:
     A class to manage different Stable Diffusion models and perform various image generation tasks.
     """
 
-    def __init__(self, diffusers_model: str, output_dir: str, models_dir: str, verbose: bool = False):
+    def __init__(self, diffusers_model: str, outputs_dir: str, models_dir: str, verbose: bool = False):
         """
         Initialize the DiffusersModel.
 
         Args:
             diffusers_model (str): The name or path of the Diffusers model to use.
-            output_dir (str): Directory to save generated images.
+            outputs_dir (str): Directory to save generated images.
             models_dir (str): Directory to cache models.
             verbose (bool, optional): Enable verbose logging. Defaults to False.
         """
         self.model = None
         self.img2img_model = None
         self.inpaint_model = None
-        self.output_dir = output_dir
+        self.outputs_dir = outputs_dir
         self.models_dir = models_dir
         self.diffusers_model = diffusers_model
         self.verbose = verbose
@@ -213,7 +213,7 @@ class DiffusersModel:
                 logging.error(f"Image generation failed: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Image generation failed: {str(e)}")
 
-        output_path = Path(self.output_dir)
+        output_path = Path(self.outputs_dir)
         fn = find_next_available_filename(output_path, "diff_img_")
         image.save(fn)
         
@@ -251,7 +251,7 @@ class DiffusersModel:
                 logging.error(f"Image-to-image generation failed: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Image-to-image generation failed: {str(e)}")
 
-        output_path = Path(self.output_dir)
+        output_path = Path(self.outputs_dir)
         fn = find_next_available_filename(output_path, "img2img_")
         image.save(fn)
         
@@ -291,7 +291,7 @@ class DiffusersModel:
                 logging.error(f"Inpainting failed: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Inpainting failed: {str(e)}")
 
-        output_path = Path(self.output_dir)
+        output_path = Path(self.outputs_dir)
         fn = find_next_available_filename(output_path, "inpaint_")
         image.save(fn)
         
@@ -445,12 +445,12 @@ if __name__ == "__main__":
     if args.verbose:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    diffusers_model = DiffusersModel(args.model, args.output_dir, args.models_dir, verbose=args.verbose)
+    diffusers_model = DiffusersModel(args.model, args.outputs_dir, args.models_dir, verbose=args.verbose)
 
     if args.verbose:
         logging.info(f"Starting server on {args.host}:{args.port}")
         logging.info(f"Using model: {args.model}")
-        logging.info(f"Output directory: {args.output_dir}")
+        logging.info(f"Output directory: {args.outputs_dir}")
         logging.info(f"Models directory: {args.models_dir}")
 
     uvicorn.run(app, host=args.host, port=args.port)
