@@ -26,7 +26,7 @@ with the image generation and manipulation capabilities.
 Example:
 python diffusers_fastapi.py --host 0.0.0.0 --port 8253 --model "stabilityai/stable-diffusion-2-1" --output_dir "output" --models_dir "models" --verbose
 
-License: MIT
+License: Apache 2.0
 """
 
 import argparse
