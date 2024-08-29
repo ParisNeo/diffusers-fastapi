@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+diffusers
+transformers
+accelerate
+Pillow
+pydantic
+sentencepiece
+pipmaster
+python-multipart
