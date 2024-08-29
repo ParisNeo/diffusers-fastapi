@@ -8,3 +8,6 @@ pydantic
 sentencepiece
 pipmaster
 python-multipart
+numpy
+opencv-python
+stegano

@@ -43,6 +43,10 @@ import pipmaster as pm
 import pkg_resources
 from PIL import Image
 import io
+import numpy as np
+import cv2
+from stegano import lsb
+import hashlib
 
 global diffusers_model
 outputs_folder = Path("__file__").parent/"outputs"
@@ -102,6 +106,7 @@ class DiffusersModel:
         self.diffusers_model = diffusers_model
         self.verbose = verbose
         self.watermark = watermark
+        self.watermark_message = "diffusers_client"        
         self.load_model()
 
     def load_model(self):
@@ -159,17 +164,29 @@ class DiffusersModel:
             self.model.to(device)
             try:
                 # Load img2img model
-                self.img2img_model = StableDiffusionPipeline.from_pretrained(
-                    self.diffusers_model,
-                    **model_kwargs
-                ).to(device)
+                if "stable-diffusion-3" in self.diffusers_model:
+                    self.img2img_model = StableDiffusion3Pipeline.from_pretrained(
+                        self.diffusers_model,
+                        **model_kwargs
+                    ).to(device)
+                else:
+                    self.img2img_model = StableDiffusionPipeline.from_pretrained(
+                        self.diffusers_model,
+                        **model_kwargs
+                    ).to(device)
                 self.img2img_model.enable_model_cpu_offload()
 
                 # Load inpainting model
-                self.inpaint_model = StableDiffusionPipeline.from_pretrained(
-                    self.diffusers_model,
-                    **model_kwargs
-                ).to(device)
+                if "stable-diffusion-3" in self.diffusers_model:
+                    self.inpaint_model = StableDiffusion3Pipeline.from_pretrained(
+                        self.diffusers_model,
+                        **model_kwargs
+                    ).to(device)
+                else:
+                    self.inpaint_model = StableDiffusionPipeline.from_pretrained(
+                        self.diffusers_model,
+                        **model_kwargs
+                    ).to(device)
                 self.inpaint_model.enable_model_cpu_offload()
             except:
                 self.img2img_model = None
@@ -181,6 +198,24 @@ class DiffusersModel:
             if self.verbose:
                 logging.error(f"Failed to load model: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Failed to load model: {str(e)}")
+        
+    def add_hidden_watermark(self, image: Image.Image) -> Image.Image:
+        if self.watermark:
+            # Convert PIL Image to numpy array
+            img_array = np.array(image)
+            
+            # Convert RGB to BGR (OpenCV uses BGR)
+            img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+            
+            # Add watermark using LSB steganography
+            secret = hashlib.sha256(self.watermark_message.encode()).hexdigest()
+            watermarked_img = lsb.hide(img_bgr, secret)
+            
+            # Convert back to PIL Image
+            watermarked_pil = Image.fromarray(cv2.cvtColor(np.array(watermarked_img), cv2.COLOR_BGR2RGB))
+            return watermarked_pil
+        return image
+
 
     def paint(self, request: ImageGenerationRequest) -> tuple:
         """
@@ -214,6 +249,7 @@ class DiffusersModel:
                 num_inference_steps=request.steps,
                 generator=generator
             ).images[0]
+            image = self.add_hidden_watermark(image)
         except Exception as e:
             if self.verbose:
                 logging.error(f"Image generation failed: {str(e)}")
@@ -252,6 +288,7 @@ class DiffusersModel:
                 num_inference_steps=request.steps,
                 generator=generator
             ).images[0]
+            image = self.add_hidden_watermark(image)
         except Exception as e:
             if self.verbose:
                 logging.error(f"Image-to-image generation failed: {str(e)}")
@@ -292,6 +329,7 @@ class DiffusersModel:
                 num_inference_steps=request.steps,
                 generator=generator
             ).images[0]
+            image = self.add_hidden_watermark(image)
         except Exception as e:
             if self.verbose:
                 logging.error(f"Inpainting failed: {str(e)}")
@@ -437,6 +475,23 @@ def find_next_available_filename(path: Path, prefix: str) -> Path:
             return file_path
         i += 1
 
+@app.post("/test-watermark")
+async def test_watermark(image: UploadFile = File(...)):
+    contents = await image.read()
+    img = Image.open(io.BytesIO(contents))
+    img_array = np.array(img)
+    img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+    
+    try:
+        secret = lsb.reveal(img_bgr)
+        expected_secret = hashlib.sha256("diffusers_client".encode()).hexdigest()
+        if secret == expected_secret:
+            return {"watermark_detected": True, "message": "diffusers_client"}
+        else:
+            return {"watermark_detected": False, "message": "Watermark not found or incorrect"}
+    except Exception as e:
+        return {"watermark_detected": False, "message": f"Error: {str(e)}"}
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Diffusers Image Generation API")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Host to run the server on")
@@ -445,6 +500,7 @@ if __name__ == "__main__":
     parser.add_argument("--outputs_dir", type=str, default="outputs", help="Directory to save generated images")
     parser.add_argument("--models_dir", type=str, default="models", help="Directory to cache models")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    parser.add_argument("--watermark", action="store_true", help="Add hidden watermark to generated images")
     
     args = parser.parse_args()
 
