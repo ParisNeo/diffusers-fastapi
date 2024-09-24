@@ -25,11 +25,15 @@ Diffusers FastAPI is a robust and versatile FastAPI-based server for image gener
    ```
 
 2. Install PyTorch:
-   For Windows with CUDA 12.1:
+   This application requires PyTorch to be installed, preferably with CUDA support for optimal performance. To install PyTorch with CUDA support, use the following command:
+
    ```
-   pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+   pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
    ```
-   For other systems, please refer to the [official PyTorch installation guide](https://pytorch.org/get-started/locally/).
+
+   This command installs PyTorch with CUDA 11.8 support. If you need a different CUDA version or don't have a CUDA-capable GPU, please refer to the [official PyTorch installation guide](https://pytorch.org/get-started/locally/) for alternative installation options.
+
+   Note: The CUDA version (cu118 in this case) should match your system's CUDA installation. Adjust as necessary.
 
 3. Install other dependencies:
    ```
